@@ -1,5 +1,5 @@
 ---
-title: "Human Activity Recognition"
+title: "README"
 author: "Alexander N. Villasoto"
 date: "19 November 2018"
 output: html_document
@@ -7,7 +7,7 @@ fig_path: figures
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 # knitr::fig_path("./figures")
 # knitr::knit(input = "readme.rmd", output = "README.md")
 ```
