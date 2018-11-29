@@ -28,13 +28,9 @@ Random Forest and ensemble methods report pretty good out-of-sample errors under
 The project includes the following files and directories:
 
 .
-
 +-- data
-
 |   +-- pml-testing.csv
-
 |   +-- pml-training.csv
-
 +-- docs
 |   +-- HumanActivityRecognition_files
 |   |   +-- figure-html
@@ -46,6 +42,8 @@ The project includes the following files and directories:
 |   +-- HumanActivityRecognition.Rmd
 |   +-- HumanActivityRecognition.html
 |   +-- index.html
++-- raw_code.R
++-- raw_code_v2.R
 +-- README.md
 +-- README.Rmd
 

@@ -1,34 +1,54 @@
 ---
-title: "README"
+title: "Human Activity Recognition"
 author: "Alexander N. Villasoto"
-date: "19 November 2018"
+date: "29 November 2018"
 output: html_document
 fig_path: figures
 ---
 
 
 
-## R Markdown
+NOTE: The full document regarding this project can be found [here](https://arseniusnott.github.io/Human-Activity-Recognition/).
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+## I. Synopsis
+Due to the recent trend in the usage of commodity hardware that monitors human activity the likes of Apple Watch and Fitbit as well as the prevalence of inexpensive hardware that collects massive and real-time data, several researchers particularly Ugulino et. al. sought the need to explore Human Activity Recognition (HAR) studies that they collected movement data based on 5 classess of motion  (sitting-down, standing-up, standing, walking, and sitting) on 8 hours of activities of 4 healthy subjects. 
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+Building upon the efforts put behind this research, the author did a predictive analysis project with the following parts - (1) exploratory data analysis, (2) model building and (3) model performance analysis with ensemble modeling that would ultimately realize a best model that predict a type of activity based on the pertinent covariates.
 
+The author exrtracted 26 covariates from the raw data that would explain 95% of the total variation throught Principal Component Analysis, divided the resulting analytic data into training and testing and building a machine learning model across common algorithms including (1) Decision Tree, (2) Decision Forest, (3) Naive Bayes, (4) Optimized Gradient Boosting, (5) Polynomial Support Vector Machine and (6) Neural Networks.
 
-```
-##      speed           dist       
-##  Min.   : 4.0   Min.   :  2.00  
-##  1st Qu.:12.0   1st Qu.: 26.00  
-##  Median :15.0   Median : 36.00  
-##  Mean   :15.4   Mean   : 42.98  
-##  3rd Qu.:19.0   3rd Qu.: 56.00  
-##  Max.   :25.0   Max.   :120.00
-```
+Analyzing the result of modeling, the author observed that random forest and gradient boosting got the highest average accuracy across 10 cross-validations using the test dataset. He then used these to generate an ensemble model with random forest as an aggregating method that also reported low out-of-sample errors, the same as the random forest. 
 
-## Including Plots
+Random Forest and ensemble methods report pretty good out-of-sample errors under generalized training parameters, deeming these as the best model for this scenario. In the Human Activity Recognition, the author err on the side of simplicity that is why the author chose random forest model to predict 20 unlabeled observations, ultimately concluding that it is possible to predict classes of movement from out-of-sample observations based on the given data.
 
-You can also embed plots, for example:
+## Directory Structure
 
-![plot of chunk pressure](figure/pressure-1.png)
+The project includes the following files and directories:
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+.
++-- data
+|   +-- pml-testing.csv
+|   +-- pml-training.csv
++-- docs
+|   +-- HumanActivityRecognition_files
+|   |   +-- figure-html
+|   |   |   +-- 01_05_cor_heatmap-1.png
+|   |   |   +-- 01_07_pca_with_correlation_matrix-1.png
+|   |   |   +-- 03_01_model_performance_analysis-1.png
+|   |   |   +-- 03_02_roc_plot-1.png
+|   |   |   +-- 03_03_ensemble_modeling-1.png
+|   +-- HumanActivityRecognition.Rmd
+|   +-- HumanActivityRecognition.html
+|   +-- index.html
++-- raw_code.R
++-- raw_code_v2.R
++-- README.md
++-- README.Rmd
+
+Unfortunately, due to the cache size of the project and due to limited storage option for GitHub, the cache directory for markdown is not pushed in this repository. If you want to have access to these files, you may contact me through email at [anvillasoto@gmail.com](mailto:anvillasoto@gmail.com).
+
+## Reference:
+
+Ugulino, W.; Cardador, D.; Vega, K.; Velloso, E.; Milidiu, R.; Fuks, H. Wearable Computing: Accelerometers' Data Classification of Body Postures and Movements. Proceedings of 21st Brazilian Symposium on Artificial Intelligence. Advances in Artificial Intelligence - SBIA 2012. In: Lecture Notes in Computer Science. , pp. 52-61. Curitiba, PR: Springer Berlin / Heidelberg, 2012. ISBN 978-3-642-34458-9. DOI: 10.1007/978-3-642-34459-6_6. 
+
+Read more: http://groupware.les.inf.puc-rio.br/har#ixzz5YFwtQjeT
