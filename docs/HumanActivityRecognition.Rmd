@@ -1,0 +1,438 @@
+---
+title: "Human Activity Recognition"
+author: "Alexander N. Villasoto"
+date: "19 November 2018"
+output: html_document
+fig_path: figure
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(cache = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(fig.align = "center")
+knitr::opts_chunk$set(fig.show = "hold")
+```
+
+## I. Synopsis
+
+Due to the recent trend in the usage of commodity hardware that monitors human activity the likes of Apple Watch and Fitbit as well as the prevalence of inexpensive hardware that collects massive and real-time data, several researchers particularly Ugulino et. al. sought the need to explore Human Activity Recognition (HAR) studies that they collected movement data based on 5 classess of motion  (sitting-down, standing-up, standing, walking, and sitting) on 8 hours of activities of 4 healthy subjects. 
+
+Building upon the efforts put behind this research, the author did a predictive analysis project with the following parts - (1) exploratory data analysis, (2) model building and (3) model performance analysis with ensemble modeling that would ultimately realize a best model that predict a type of activity based on the pertinent covariates.
+
+The author exrtracted 26 covariates from the raw data that would explain 95% of the total variation throught Principal Component Analysis, divided the resulting analytic data into training and testing and building a machine learning model across common algorithms including (1) Decision Tree, (2) Decision Forest, (3) Naive Bayes, (4) Optimized Gradient Boosting, (5) Polynomial Support Vector Machine and (6) Neural Networks.
+
+Analyzing the result of modeling, the author observed that random forest and gradient boosting got the highest average accuracy across 10 cross-validations using the test dataset. He then used these to generate an ensemble model with random forest as an aggregating method that also reported low out-of-sample errors, the same as the random forest. 
+
+Random Forest and ensemble methods report pretty good out-of-sample errors under generalized training parameters, deeming these as the best model for this scenario. In the Human Activity Recognition, the author err on the side of simplicity that is why the author chose random forest model to predict 20 unlabeled observations, ultimately concluding that it is possible to predict classes of movement from out-of-sample observations based on the given data.
+
+```{r 01_01_load_dependencies}
+# libraries
+library(dplyr)
+library(caret)
+library(ggplot2)
+library(reshape2)
+library(pROC)
+library(MLmetrics)
+library(gridExtra)
+```
+
+## II. Exploratory Data Analysis
+
+In this section, the author loads necessary libraries for model-building, data visualization, and model analysis. Main sections include (1) load dataset, (2) clean data, (3) split data into training and testing, (4) employ principal component analysis and (5) print correlation matrices.
+
+### A. Load Dataset
+
+```{r 01_02_load_data}
+# set working directory
+setwd("~/Projects/Courses/Coursera/Practical Machine Learning/Human-Activity-Recognition/")
+
+# read csv
+train.data.raw <- read.csv(file = "data/pml-training.csv")
+test.data.raw <- read.csv(file = "data/pml-testing.csv")
+```
+
+### B. Clean Dataset For Training
+
+```{r 01_03_data_cleaning}
+# Data Cleaning
+
+# Select columns with complete cases:
+# class of each column in dataset
+col.class <- sapply(train.data.raw, class)
+# show unique classes
+unique(col.class)
+
+# check columns with an acceptable amount of values with complete cases 
+# (non-null and non-empty values)
+# acceptability in this case means that the number of values in the column 
+# with complete cases is greater than or equal to 90% of the total observations
+# in the dataset.
+get.col.indexes.with.complete.cases <- function(data) {
+  data %>% sapply(function(x) {
+    if (is.numeric(x)) {
+      # for numeric columns
+      # check if a reasonable amount of values in the column have complete cases
+      # if yes, return true, else return false
+      if (sum(complete.cases(x)) >= (length(x) * 0.9)) {
+        TRUE
+      } else {
+        FALSE
+      }
+    } else {
+      # for factor columns
+      # check if reasonable amount of values in the columns have complete cases
+      # AND not equal to empty string
+      # if yes, return true, else return false
+      if (sum(complete.cases(x)) >= (length(x) * 0.9) & 
+          sum(x != "") >= (length(x) * 0.9)) {
+        TRUE
+      } else {
+        FALSE
+      }
+    }
+  })
+}
+# reduced train dataset (columns with acceptably complete cases)
+train.data.complete.cases.index <- 
+  get.col.indexes.with.complete.cases(train.data.raw)
+train.data.reduced <- train.data.raw[, train.data.complete.cases.index]
+
+# for 20 unlabeled observations
+unlabeled.data.reduced <- test.data.raw[, train.data.complete.cases.index]
+
+# removing unnecessary covariates
+train.data.reduced[1:5, 1:7]
+train.data.reduced <- train.data.reduced[, -c(1:7)]
+unlabeled.data.reduced <- unlabeled.data.reduced[, -c(1:7)]
+
+# Clean Train Data
+train.data.cleaned <- train.data.reduced %>%
+  filter(complete.cases(.) & sum(is.na(.)) == 0)
+```
+
+### C. Split Data into Training and Testing
+
+```{r 01_04_data_splitting}
+# divide the train.data.reduced into training and testing 75/25
+training.index <- createDataPartition(y = train.data.cleaned$classe, 
+                                      p = 0.75, 
+                                      list = FALSE)
+training <- train.data.cleaned[training.index, ]
+testing <- train.data.cleaned[-training.index, ]
+
+# print first 5 values of training set
+head(training)
+```
+
+### D. Correlation Heatmap and Principal Component Analysis
+
+```{r 01_05_cor_heatmap, fig.width = 7, fig.height = 7}
+# Correlation Heatmap
+plot.correlation.heatmap <- function(data = training, 
+                                     title, subtitle) {
+  correlation <- 
+    round(cor(subset(data, select = sapply(data, class) != "factor")), 2)
+  # Melt data to bring the correlation values in two axis
+  correlation.melted <- melt(correlation)
+  ggplot(data = correlation.melted, 
+         aes(x = Var1, y = Var2, fill = value, label= value)) +
+    geom_raster() +
+    scale_fill_gradient2(low = "steelblue", 
+                         high = "darkred",
+                         mid = "white") +
+    theme(axis.text.x = element_text(angle=90, vjust = 0.6),
+          axis.text.y = element_text(vjust=  0.6)) +
+    labs(title = title, subtitle = subtitle, x = "", y = "")
+}
+# plot correlation heatmap of training dataset
+plot.correlation.heatmap(
+  data = training, 
+  title = "Fig 1. Correlation Heatmap", 
+  subtitle = "Numeric Features of Reduced Training Dataset"
+)
+```
+
+Looking at the correlation heatmap (outside the identity line), we see that there are highly correlated variables (dark red and dark blue shades representing strongly positive and strongly negative correlation respectively). Including unnecessary variables in modeling will definitely increase the R squared but will suffer from the increase in the variance of the variance estimate, meaning that we included regressors that are linear combinations of other covariates. To remedy the situation, the author employed Principal Component Analysis across numeric covariates like so:
+
+```{r 01_06_preprocess_pca}
+preprocess.pca <- preProcess(x = subset(training, select = -classe), 
+                             method = "pca",
+                             thresh = 0.95)
+# print the result of pca
+preprocess.pca
+```
+
+As we can see, 26 principal components capture 95% of the total variance. Since that is the case, he then applied that preprocessing to our training, testing and unsupervised prediction dataset (unsupervised because we do not know the real label, we are just reporting the result of prediction utilizing the best model). He also print the correlation matrix for the training dataset using only the principal components. 
+
+```{r 01_07_pca_with_correlation_matrix, fig.width = 7, fig.height = 7}
+# for training
+train.pca <- predict(object = preprocess.pca,
+                       newdata = subset(training, select = -classe))
+train.pca$classe <- training$classe
+
+# for testing
+test.pca <- predict(object = preprocess.pca,
+                    newdata = subset(testing, select = -classe))
+test.pca$classe <- testing$classe
+
+# plot correlation heatmap of training dataset with resulting principal 
+# components
+plot.correlation.heatmap(
+  data = train.pca, 
+  title = "Fig 2. Correlation Heatmap", 
+  subtitle = "Numeric Features of Training Dataset with Principal Components"
+)
+```
+
+Now we see that with 26 numeric covariates, we can still explain 95% of the total variation.
+
+## III. Model Building
+
+In model building, the author chooses cross-validation method with ten folds as training option. The author also make sure that prediction probabilities for each class is being recorded in the model result. He uses algorithms compatible with caret's train function - Decision Tree, Decision Forest, Naive Bayes, Optimized Gradient Boosting, Polynomial Support Vector Machine and Neural Networks and build these models using the training data we set aside earlier. He then generated predictions using the testing data and generated confusion matrices that will be used for printing ROC curves for later analysis.
+
+### A. Establish Training Parameters
+
+```{r 02_01_establish_train_parameters}
+# training parameters use repeted cross-validation with 10 folds. This is to
+# make sure that the model generalizes well on new data and
+# separate signal from noise.
+training.parameters <- trainControl(method = "cv", number = 10)
+```
+
+### B. Model Building
+
+```{r 02_02_model_building}
+# function that generates training model, prediction, confusion-matrix and 
+# out-of-sample error
+train.and.predict <- function(model.method = "rpart", train.data = train.pca, 
+                              test.data = test.pca,
+                              training.parameters = training.parameters) {
+  model <- list()
+  
+  # train
+  if (model.method == "svmPoly") {
+    # since polynomial svm needs tuneGrid extra parameter, its model is 
+    # separated from others
+    model <- train(classe ~ ., 
+                   data = train.data,
+                   method = model.method,
+                   trControl= training.parameters,
+                   tuneGrid = data.frame(degree = 1,
+                                         scale = 1,
+                                         C = 1),
+                   na.action = na.omit)
+  } else if (model.method == "nnet") {
+    # since neural network prints verbose messages per iteration,
+    # its modeling is separated from others
+    model <- train(classe ~ ., 
+                   data = train.data,
+                   method = model.method,
+                   trControl= training.parameters,
+                   na.action = na.omit,
+                   trace = FALSE)
+  } else {
+    # for remaining methods
+    model <- train(classe ~ ., 
+                   data = train.data,
+                   method = model.method,
+                   trControl= training.parameters,
+                   na.action = na.omit)
+  }
+  
+  # predict
+  predictions <- predict(object = model,
+                         newdata = test.data)
+  
+  # generate confusion matrix
+  confusion.matrix <- confusionMatrix(data = predictions, 
+                                      reference = test.data$classe)
+    
+  # out-of-sample error
+  out.of.sample.error <- (1 - confusion.matrix$overall["Accuracy"])
+  
+  train.and.predict.object <- list("model" = model,
+                                   "predictions" = predictions,
+                                   "confusion.matrix" = confusion.matrix,
+                                   "out.of.sample.error" = out.of.sample.error)
+  
+  train.and.predict.object
+}
+
+# List of Model Methods to Build
+# (1) Decision Tree
+# (2) Decision Forest
+# (3) Naive Bayes
+# (4) Optimized Gradient Boosting
+# (5) Polynomial Support Vector Machine
+# (6) Neural Networks
+
+# (1) Decision Tree
+dtree <- train.and.predict(model.method = "rpart", train.data = train.pca,
+                           test.data = test.pca, 
+                           training.parameters = training.parameters)
+
+# (2) Decision Forest
+rforest <- train.and.predict(model.method = "rf", train.data = train.pca,
+                             test.data = test.pca, 
+                             training.parameters = training.parameters)
+
+# (3) Naive Bayes
+naivebayes <- train.and.predict(model.method = "nb", train.data = train.pca,
+                                test.data = test.pca, 
+                                training.parameters = training.parameters)
+
+# (4) Optimized Gradient Boosting
+xgbtree <- train.and.predict(model.method = "xgbTree", train.data = train.pca,
+                             test.data = test.pca, 
+                             training.parameters = training.parameters)
+
+# (5) Polynomial Support Vector Machine
+svmpoly <- train.and.predict(model.method = "svmPoly", train.data = train.pca,
+                             test.data = test.pca, 
+                             training.parameters = training.parameters)
+
+# (6) Neural Networks
+nnet <- train.and.predict(model.method = "nnet", train.data = train.pca,
+                          test.data = test.pca, 
+                          training.parameters = training.parameters)
+```
+
+## IV. Model Performance Analysis
+
+In this section, the author dissects analysis into three parts, (1) frequency plot, (2) ROC plots and (3) ensemble modeling. We also look at 20 unlabeled observations and try to predict their activity classes using the best model.
+
+### A. Frequency Plot
+
+To gain the number of observations with labels falling on each of the activity categories
+
+```{r 03_01_model_performance_analysis}
+freq.plot <- ggplot() + 
+  suppressWarnings(geom_histogram(aes(x = as.numeric(test.pca$classe), 
+                                      fill = test.pca$classe), 
+                                  stat = "count"))+
+  theme(legend.position = "bottom") +
+  scale_fill_manual(name = "Activity Classes", values = 2:6) +
+  labs(y = 'Frequency',
+       x = 'Activity Classes',
+       title = paste("Fig 3. Frequency Plot Per Activity Classes"))
+freq.plot
+```
+
+### B. ROC Plot
+
+```{r 03_02_roc_plot, fig.width = 12, fig.height = 13}
+# gets legend to be used in ROC plots
+get.legend <- function(a.gplot) {
+  tmp <- ggplot_gtable(ggplot_build(a.gplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+}
+
+# plot roc curves based on confusion matrices returned by the train.and.predict
+# function above. 
+plot.roc.curve <- function(model.name, train.and.predict.object) {
+  confusion.matrix <- train.and.predict.object$confusion.matrix
+  
+  # Accuracy
+  out.of.sample.error <- round(train.and.predict.object$out.of.sample.error, 5)
+  
+  by.class <- confusion.matrix$byClass[, c("Sensitivity", 
+                                           "Specificity")]
+  
+  p <- ggplot(x = NA, y = NA, xlim = c(0,1), ylim = c(0,1)) + 
+    geom_line(aes(x = c(0, 1 - by.class[1, "Specificity"], 1), 
+                  y = c(0, by.class[1, "Sensitivity"], 1)), 
+              colour = 2, lwd = 1) + 
+    geom_line(aes(x = c(0, 1 - by.class[2, "Specificity"], 1), 
+                  y = c(0, by.class[2, "Sensitivity"], 1)), 
+              colour = 3, lwd = 1) + 
+    geom_line(aes(x = c(0, 1 - by.class[3, "Specificity"], 1), 
+                  y = c(0, by.class[3, "Sensitivity"], 1)), 
+              colour = 4, lwd = 1) + 
+    geom_line(aes(x = c(0, 1 - by.class[4, "Specificity"], 1), 
+                  y = c(0, by.class[4, "Sensitivity"], 1)), 
+              colour = 5, lwd = 1) + 
+    geom_line(aes(x = c(0, 1 - by.class[5, "Specificity"], 1), 
+                  y = c(0, by.class[5, "Sensitivity"], 1)), 
+              colour = 6, lwd = 1) + 
+    geom_line(aes(x = c(0, 1), y = c(0, 1))) +
+    labs(y = 'True Positive Rate',
+         x = 'False Positive Rate',
+         title = paste("ROC Plot Per Activity Class (", model.name, ")"),
+         subtitle = paste("Model has an Overall Out-of-Sample-Error of ", 
+                          out.of.sample.error))
+  
+  p
+}
+
+# generate roc curves plot
+dtree.plot <- plot.roc.curve("Decision Tree", dtree)
+rforest.plot <- plot.roc.curve("Random Forest", rforest)
+naivebayes.plot <- plot.roc.curve("Naive Bayes", naivebayes)
+xgbtree.plot <- plot.roc.curve("Optimized Gradient Boosting", xgbtree)
+svmpoly.plot <- plot.roc.curve("Support Vector Machine", svmpoly)
+nnet.plot <- plot.roc.curve("Neural Networks", nnet)
+custom.legend <- get.legend(freq.plot)
+grid.arrange(dtree.plot, rforest.plot, naivebayes.plot, xgbtree.plot, 
+             svmpoly.plot, nnet.plot, custom.legend, ncol = 2, nrow = 4,
+             layout_matrix = rbind(c(1, 2), c(3, 4), c(5, 6), c(7, 7)),
+             heights = c(10, 10, 10, 1))
+
+```
+
+ROC Plots above (not really curves because they only get one middle value which is the average adjusted accuracies for each class)  represent accuracy conditioned on activity classes. The author wants to interest you to a out of sample errors for each modeling methods. As you can see, random-forest, optimized gradient boosting and give near zero accuracy. Support Vector Machine in the other hand reports 0 out-of-sample error. Nevertheless, the author tried to do ensemble modeling using these three models and see if it performs just as much.
+
+### D. Ensemble Modeling
+
+```{r 03_03_ensemble_modeling}
+# Collate predictions from models with higher accuracy
+gather.predictions <- function(model, new.data = train.pca) {
+  predictions <- predict(object = model, newdata = new.data)
+  predictions
+}
+# training set for ensemble models
+ensemble.training <- data.frame(rforest = gather.predictions(rforest$model),
+                                xgbtree = gather.predictions(xgbtree$model),
+                                classe = train.pca$classe)
+# testing set for ensemble models
+ensemble.testing <- data.frame(rforest = gather.predictions(rforest$model, 
+                                                   new.data = test.pca),
+                               xgbtree = gather.predictions(xgbtree$model, 
+                                                   new.data = test.pca),
+                               classe = test.pca$classe)
+
+# train ensembled data using random forest as an aggregator
+# no need to do cross validations
+ensemble <- train.and.predict(model.method = "rf", 
+                              train.data = ensemble.training, 
+                              test.data = ensemble.testing,
+                              training.parameters = trainControl(
+                                method = "boot", number = 1))
+
+# print roc plot for ensemble model
+grid.arrange(plot.roc.curve("Ensemble Model Using Random Forest as Aggregator Method", ensemble), custom.legend, 
+             nrow = 2, heights = c(10, 1))
+```
+
+Ensemble models utilizing the results of models with low out-of-sample errors using esoteric modeling methods as aggregator will give us highly accurate models at the expense of interpretability. But given the situation where out-of-sample errors are the same for random-forest and ensemble model, the author chose the former for predicting 20 unlabeled observations.
+
+### E. Unsupervised Prediction Using the Best Model
+
+This section utilizes random forest model to create unsupervised prediction across 20 unlabeled observations. 
+
+```{r 03_04_unsupervised_prediction_using_prediction_model}
+# generate predictions for the test data using svm poly model
+# for unsupervised prediction dataset
+unlabeled.data.pca <- predict(object = preprocess.pca,
+                              newdata = subset(unlabeled.data.reduced, 
+                                               select = -problem_id))
+
+predict(object = rforest$model, newdata = unlabeled.data.pca)
+```
+
+## V. Conclusion
+
+Random Forest and ensemble methods report pretty good out-of-sample errors under generalized training parameters, deeming these as the best model for this scenario. In the Human Activity Recognition, the author err on the side of simplicity that is why the author chose random forest model to predict 20 unlabeled observations, ultimately concluding that it is possible to predict classes of movement from out-of-sample observations based on the given data.
