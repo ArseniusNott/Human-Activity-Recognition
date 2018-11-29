@@ -25,25 +25,25 @@ Random Forest and ensemble methods report pretty good out-of-sample errors under
 
 The project includes the following files and directories:
 
-.
-+-- data
-|   +-- pml-testing.csv
-|   +-- pml-training.csv
-+-- docs
-|   +-- HumanActivityRecognition_files
-|   |   +-- figure-html
-|   |   |   +-- 01_05_cor_heatmap-1.png
-|   |   |   +-- 01_07_pca_with_correlation_matrix-1.png
-|   |   |   +-- 03_01_model_performance_analysis-1.png
-|   |   |   +-- 03_02_roc_plot-1.png
-|   |   |   +-- 03_03_ensemble_modeling-1.png
-|   +-- HumanActivityRecognition.Rmd
-|   +-- HumanActivityRecognition.html
-|   +-- index.html
-+-- raw_code.R
-+-- raw_code_v2.R
-+-- README.md
-+-- README.Rmd
+. \ 
++-- data \ 
+|   +-- pml-testing.csv \ 
+|   +-- pml-training.csv \ 
++-- docs \ 
+|   +-- HumanActivityRecognition_files \ 
+|   |   +-- figure-html \ 
+|   |   |   +-- 01_05_cor_heatmap-1.png \ 
+|   |   |   +-- 01_07_pca_with_correlation_matrix-1.png \ 
+|   |   |   +-- 03_01_model_performance_analysis-1.png \ 
+|   |   |   +-- 03_02_roc_plot-1.png \ 
+|   |   |   +-- 03_03_ensemble_modeling-1.png \ 
+|   +-- HumanActivityRecognition.Rmd \ 
+|   +-- HumanActivityRecognition.html \ 
+|   +-- index.html \ 
++-- raw_code.R \ 
++-- raw_code_v2.R \ 
++-- README.md \ 
++-- README.Rmd \ 
 
 Unfortunately, due to the cache size of the project and due to limited storage option for GitHub, the cache directory for markdown is not pushed in this repository. If you want to have access to these files, you may contact me through email at [anvillasoto@gmail.com](mailto:anvillasoto@gmail.com).
 
