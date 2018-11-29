@@ -25,8 +25,8 @@ Random Forest and ensemble methods report pretty good out-of-sample errors under
 
 The project includes the following files and directories:
 
-. \ 
-+-- data \ 
+.<br/>
++-- data<br/> 
 |   +-- pml-testing.csv \ 
 |   +-- pml-training.csv \ 
 +-- docs \ 
