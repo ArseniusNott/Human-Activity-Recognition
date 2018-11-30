@@ -21,7 +21,7 @@ Due to the recent trend in the usage of commodity hardware that monitors human a
 
 Building upon the efforts put behind this research, the author did a predictive analysis project with the following parts - (1) exploratory data analysis, (2) model building and (3) model performance analysis with ensemble modeling that would ultimately realize a best model that predict a type of activity based on the pertinent covariates.
 
-The author exrtracted 26 covariates from the raw data that would explain 95% of the total variation throught Principal Component Analysis, divided the resulting analytic data into training and testing and building a machine learning model across common algorithms including (1) Decision Tree, (2) Decision Forest, (3) Naive Bayes, (4) Optimized Gradient Boosting, (5) Polynomial Support Vector Machine and (6) Neural Networks.
+The author exrtracted 25 covariates from the raw data that would explain 95% of the total variation throught Principal Component Analysis, divided the resulting analytic data into training and testing and building a machine learning model across common algorithms including (1) Decision Tree, (2) Decision Forest, (3) Naive Bayes, (4) Optimized Gradient Boosting, (5) Polynomial Support Vector Machine and (6) Neural Networks.
 
 Analyzing the result of modeling, the author observed that random forest and gradient boosting got the highest average accuracy across 10 cross-validations using the test dataset. He then used these to generate an ensemble model with random forest as an aggregating method that also reported low out-of-sample errors, the same as the random forest. 
 
@@ -164,7 +164,7 @@ preprocess.pca <- preProcess(x = subset(training, select = -classe),
 preprocess.pca
 ```
 
-As we can see, 26 principal components capture 95% of the total variance. Since that is the case, he then applied that preprocessing to our training, testing and unsupervised prediction dataset (unsupervised because we do not know the real label, we are just reporting the result of prediction utilizing the best model). He also print the correlation matrix for the training dataset using only the principal components. 
+As we can see, 25 principal components capture 95% of the total variance. Since that is the case, he then applied that preprocessing to our training, testing and unlabeled dataset (we do not know the real label, we are just reporting the result of prediction utilizing the best model). He also print the correlation matrix for the training dataset using only the principal components. 
 
 ```{r 01_07_pca_with_correlation_matrix, fig.width = 7, fig.height = 7}
 # for training
@@ -383,7 +383,7 @@ grid.arrange(dtree.plot, rforest.plot, naivebayes.plot, xgbtree.plot,
 
 ```
 
-ROC Plots above (not really curves because they only get one middle value which is the average adjusted accuracies for each class)  represent accuracy conditioned on activity classes. The author wants to interest you to a out of sample errors for each modeling methods. As you can see, random-forest, optimized gradient boosting and give near zero accuracy. Support Vector Machine in the other hand reports 0 out-of-sample error. Nevertheless, the author tried to do ensemble modeling using these three models and see if it performs just as much.
+ROC Plots above (not really curves because they only get one middle value which is the average adjusted accuracies for each class)  represent accuracy conditioned on activity classes. The author wants to interest you to a out of sample errors for each modeling methods. As you can see, random-forest, optimized gradient boosting and give near zero accuracy. Nevertheless, the author tried to do ensemble modeling using the result of these models and see if it performs just as much or better.
 
 ### D. Ensemble Modeling
 
@@ -419,13 +419,13 @@ grid.arrange(plot.roc.curve("Ensemble Model Using Random Forest as Aggregator Me
 
 Ensemble models utilizing the results of models with low out-of-sample errors using esoteric modeling methods as aggregator will give us highly accurate models at the expense of interpretability. But given the situation where out-of-sample errors are the same for random-forest and ensemble model, the author chose the former for predicting 20 unlabeled observations.
 
-### E. Unsupervised Prediction Using the Best Model
+### E. Prediction Using the Best Model for Unlabeled Dataset
 
-This section utilizes random forest model to create unsupervised prediction across 20 unlabeled observations. 
+This section utilizes random forest model to create prediction across 20 unlabeled observations. 
 
 ```{r 03_04_unsupervised_prediction_using_prediction_model}
 # generate predictions for the test data using svm poly model
-# for unsupervised prediction dataset
+# for unlabeled dataset
 unlabeled.data.pca <- predict(object = preprocess.pca,
                               newdata = subset(unlabeled.data.reduced, 
                                                select = -problem_id))

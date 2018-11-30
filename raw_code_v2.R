@@ -353,13 +353,17 @@ method = "boot", number = 1))
 # print roc plot for ensemble model
 grid.arrange(plot.roc.curve("Ensemble Model", ensemble), custom.legend, 
 nrow = 2, heights = c(10, 1))
-```
 
 ### E. Unsupervised Prediction Using Ensemble Model
 
 unlabeled.data.pca <- predict(object = preprocess.pca,
                               newdata = subset(test.data.reduced, select = -problem_id))
 predict(object = svmpoly, newdata = unlabeled.data.pca)
+
+# Using ensemble model
+ensemble.train <- data.frame(svm = gather.predictions(svmpoly$model)$predictions,
+                             rforest = gather.predictions(rforest$model)$predictions,
+                             classe = train.pca$classe)
 
 ## V. Conclusion
 
